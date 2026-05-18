@@ -497,7 +497,9 @@
     return '<' + tagName + attrString + '>' + content + '</' + tagName + '>';
   }
 
-  function getElementInfo(element) {
+  let activeElementCss = {};
+
+  function getElementInfo(element, isUpdate = false) {
     const selector = getElementSelector(element);
     let levelsUp = 0;
     let root = element;
@@ -506,21 +508,63 @@
       levelsUp++;
     }
     const domString = getDomTreeAsString(root, 0, levelsUp + MAX_DESCENDANT_LEVEL);
-    const styles = window.getComputedStyle(element);
-    const css = {};
-    for (let i = 0; i < styles.length; i++) {
-      const key = styles[i];
-      css[key] = styles.getPropertyValue(key);
+
+    if (!isUpdate) {
+      const styles = window.getComputedStyle(element);
+      activeElementCss = {};
+      for (let i = 0; i < styles.length; i++) {
+        const key = styles[i];
+        activeElementCss[key] = styles.getPropertyValue(key);
+      }
     }
-    return { selector, domString, css };
+    let src = element.src || '';
+    const imgChild = element.querySelector(':scope > img');
+    const hasImgChild = !!imgChild;
+    if (!src && imgChild) {
+      src = imgChild.src || '';
+    }
+    // Compute a data URL for cross-origin image access. The host page cannot
+    // fetch image URLs from the sandboxed iframe origin due to CORS. By
+    // converting via canvas here (where we have same-origin access), the host
+    // can use srcDataUrl directly for image regeneration.
+    let srcDataUrl = '';
+    if (src && !src.startsWith('data:')) {
+      try {
+        const imgEl = element.tagName.toLowerCase() === 'img' ? element : imgChild;
+        if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = imgEl.naturalWidth;
+          canvas.height = imgEl.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(imgEl, 0, 0);
+          srcDataUrl = canvas.toDataURL('image/png');
+        }
+      } catch (e) {
+        // If canvas conversion fails (e.g. tainted canvas), leave empty.
+      }
+    } else if (src.startsWith('data:')) {
+      srcDataUrl = src;
+    }
+    const rect = element.getBoundingClientRect();
+    const tagName = element.tagName.toLowerCase();
+    return { selector, domString, css: activeElementCss, src, srcDataUrl, hasImgChild, x: rect.left, y: rect.top, width: rect.width, height: rect.height, tagHeight: focusTag ? focusTag.offsetHeight : 0, alt: element.alt || '', tagName };
   }
 
   const style = document.createElement('style');
   style.textContent =
     '.aistudio-hover-highlight { box-shadow: inset 0 0 0 0.5px white, inset 0 0 0 1.5px rgba(128,128,128,0.6) !important; }' +
-    '.aistudio-active-highlight { box-shadow: inset 0 0 0 0.5px white, inset 0 0 0 1.5px #87a9ff !important; }' +
-    '#aistudio-focus-mode-tag { position: absolute; display: none; background: #87a9ff; border-radius: 4px; border: 0.5px solid white; z-index: 10000; text-transform: lowercase; padding: 2px 4px; color: #32302c; font-family: Inter, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; line-height: 16px; pointer-events: none; }' +
-    '#aistudio-hover-mode-tag { position: absolute; display: none; background: rgba(128,128,128,0.6); border-radius: 4px; border: 0.5px solid white; z-index: 10000; text-transform: lowercase; padding: 2px 4px; color: white; font-family: Inter, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; line-height: 16px; pointer-events: none; }';
+    '.aistudio-active-highlight { outline: 2px solid #87a9ff !important; outline-offset: -2px !important; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3) !important; border-radius: inherit !important; }' +
+    '.aistudio-generating-blur { filter: blur(5px) grayscale(100%) brightness(28%) !important; transition: filter 0.3s ease; }' +
+    '#aistudio-focus-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: #87a9ff; border-radius: 12px; z-index: 10000; padding: 8px; color: #32302c; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }' +
+    '#aistudio-hover-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: rgba(128,128,128,0.6); border-radius: 12px; z-index: 10000; padding: 8px; color: white; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }' +
+    '.aistudio-img-icon { display: none; vertical-align: middle; pointer-events: auto; cursor: pointer; }' +
+    '.aistudio-img-icon.visible { display: inline-flex; }' +
+    '#aistudio-focus-mode-tag .aistudio-img-icon { position: relative; width: 26px; height: 26px; background: #32302c; border-radius: 6px; margin: -4px -4px -4px 0; }' +
+    '#aistudio-focus-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }' +
+    '#aistudio-hover-mode-tag .aistudio-img-icon { position: relative; width: 18px; height: 18px; margin-left: 4px; }' +
+    '#aistudio-hover-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 0; left: 0; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }' +
+    '#aistudio-focus-mode-tag .aistudio-img-icon:hover, #aistudio-hover-mode-tag .aistudio-img-icon:hover { background: #424242 !important; }' +
+    '#aistudio-focus-mode-tag .aistudio-img-icon:active, #aistudio-hover-mode-tag .aistudio-img-icon:active { background: #393f51 !important; }';
   document.head.appendChild(style);
 
   let hoveredElement = null;
@@ -528,15 +572,73 @@
   let focusTag = null;
   let hoverTag = null;
   let resizeObserver = null;
+  let iframeLoaded = false;
   let designModeEnabled = false;
   let designModeStyle = null;
   let designModeOverlay = null;
+  let generatingElement = null;
+
+  function createImgIcon() {
+    const icon = document.createElement('span');
+    icon.className = 'aistudio-img-icon';
+    icon.setAttribute('aria-label', 'Regenerate image');
+    icon.setAttribute('title', 'Regenerate image');
+    icon.setAttribute('role', 'button');
+    return icon;
+  }
+
+  function updateTagContent(tag, element) {
+    let label = tag.querySelector('.aistudio-tag-label');
+    if (label) {
+      label.textContent = getTagLabel(element);
+    } else {
+      label = document.createElement('span');
+      label.className = 'aistudio-tag-label';
+      label.textContent = getTagLabel(element);
+      tag.insertBefore(label, tag.firstChild);
+    }
+    const imgIcon = tag.querySelector('.aistudio-img-icon');
+    if (imgIcon) {
+      imgIcon.classList.toggle('visible',
+          (element.tagName.toLowerCase() === 'img' || element.querySelector(':scope > img')));
+    }
+  }
+
+  function getTagLabel(element) {
+    const tagName = element.tagName.toLowerCase()
+    if (tagName == 'img') {
+      return 'Image';
+    }
+    return tagName;
+  }
+
+  function createModeTag(id, isHoverMode) {
+    const tag = document.createElement('div');
+    tag.id = id;
+    const icon = createImgIcon();
+    icon.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const element = isHoverMode ? hoveredElement : activeElement;
+      if (element) {
+        if (isHoverMode && element !== activeElement) {
+          setActiveElement(element);
+        }
+        const info = getElementInfo(element);
+        window.parent.postMessage({
+          type: 'open-image-regenerator',
+          element: info,
+        }, '*');
+      }
+    });
+    tag.appendChild(icon);
+    document.body.appendChild(tag);
+    return tag;
+  }
 
   function ensureFocusTag() {
     if (!focusTag) {
-      focusTag = document.createElement('div');
-      focusTag.id = 'aistudio-focus-mode-tag';
-      document.body.appendChild(focusTag);
+      focusTag = createModeTag('aistudio-focus-mode-tag', false);
     }
   }
 
@@ -548,17 +650,48 @@
       resizeObserver.unobserve(activeElement);
     }
     window.removeEventListener('resize', positionFocusTag);
-    window.removeEventListener('scroll', positionFocusTag, true);
+    window.removeEventListener('scroll', onScroll, true);
+  }
+
+  function positionTag(tag, element) {
+    if (!element || !tag) return;
+    tag.style.display = 'inline-flex';
+    const height = tag.offsetHeight;
+    const rect = element.getBoundingClientRect();
+    tag.style.top = (rect.top + window.scrollY - height - 3) + 'px';
+    tag.style.left = (rect.left + window.scrollX) + 'px';
   }
 
   function positionFocusTag() {
     requestAnimationFrame(() => {
-      if (!activeElement || !focusTag) return;
-      focusTag.style.display = 'inline-flex';
-      const rect = activeElement.getBoundingClientRect();
-      focusTag.style.top = (rect.top + window.scrollY - focusTag.offsetHeight - 5) + 'px';
-      focusTag.style.left = (rect.left + window.scrollX) + 'px';
+      positionTag(focusTag, activeElement);
     });
+  }
+
+  let scrollScheduled = false;
+
+  function onScroll() {
+    positionFocusTag();
+    if ((activeElement || generatingElement) && !scrollScheduled) {
+      scrollScheduled = true;
+      requestAnimationFrame(() => {
+        if (activeElement) {
+          const info = getElementInfo(activeElement, true);
+          window.parent.postMessage({
+            type: 'element-selected',
+            element: info,
+          }, '*');
+        }
+        if (generatingElement && generatingElement !== activeElement) {
+          const info = getElementInfo(generatingElement, true);
+          window.parent.postMessage({
+            type: 'generating-element-moved',
+            element: info,
+          }, '*');
+        }
+        scrollScheduled = false;
+      });
+    }
   }
 
   function positionHoverTag() {
@@ -567,10 +700,7 @@
       return;
     }
     requestAnimationFrame(() => {
-      hoverTag.style.display = 'inline-flex';
-      const rect = hoveredElement.getBoundingClientRect();
-      hoverTag.style.top = (rect.top + window.scrollY - hoverTag.offsetHeight - 5) + 'px';
-      hoverTag.style.left = (rect.left + window.scrollX) + 'px';
+      positionTag(hoverTag, hoveredElement);
     });
   }
 
@@ -580,14 +710,16 @@
     });
   }
 
-  function setHoveredElement(element) {
-    if (!designModeEnabled) return;
-
+  function ensureHoverTag() {
     if (!hoverTag) {
-      hoverTag = document.createElement('div');
-      hoverTag.id = 'aistudio-hover-mode-tag';
-      document.body.appendChild(hoverTag);
+      hoverTag = createModeTag('aistudio-hover-mode-tag', true);
     }
+  }
+
+  function setHoveredElement(element) {
+    if (!designModeEnabled || !iframeLoaded) return;
+
+    ensureHoverTag();
 
     if (hoveredElement && hoveredElement !== activeElement) {
       hoveredElement.classList.remove('aistudio-hover-highlight');
@@ -598,19 +730,25 @@
 
     if (hoveredElement && hoveredElement !== activeElement) {
       hoveredElement.classList.add('aistudio-hover-highlight');
-      hoverTag.textContent = hoveredElement.tagName.toLowerCase();
+      updateTagContent(hoverTag, hoveredElement);
       positionHoverTag();
     }
   }
 
-  async function setActiveElement(element) {
-    if (!designModeEnabled) return;
+  async function setActiveElement(element, notifyHost = true) {
+    if (!designModeEnabled || !iframeLoaded) return;
+
+    if (activeElement === element) {
+      return;
+    }
 
     ensureFocusTag();
     cleanupActiveElement();
     focusTag.style.display = 'none';
+    if (hoverTag) {
+      hoverTag.style.display = 'none';
+    }
 
-    // Clear hover from new active element if it was hovered
     if (element) {
       element.classList.remove('aistudio-hover-highlight');
     }
@@ -620,38 +758,87 @@
     if (activeElement) {
       activeElement.setAttribute('data-aistudio-tag-name', activeElement.tagName);
       activeElement.classList.add('aistudio-active-highlight');
-      focusTag.textContent = activeElement.tagName.toLowerCase();
+      updateTagContent(focusTag, activeElement);
+
       positionFocusTag();
       if (resizeObserver) {
         resizeObserver.observe(activeElement);
       }
       window.addEventListener('resize', positionFocusTag);
-      window.addEventListener('scroll', positionFocusTag, true);
+      window.addEventListener('scroll', onScroll, true);
 
-      // Notify host about selected element
-      const info = getElementInfo(activeElement);
-      window.parent.postMessage({
-        type: 'element-selected',
-        element: info,
-      }, '*');
+      if (notifyHost) {
+        const info = getElementInfo(activeElement);
+        window.parent.postMessage({
+          type: 'element-selected',
+          element: info,
+        }, '*');
+      }
     }
   }
 
   function getElementAtPoint(x, y) {
     const elements = document.elementsFromPoint(x, y);
+    let fallback = null;
+    let imgAtPoint = null;
     for (const el of elements) {
       if (el.id === 'aistudio-focus-mode-tag' ||
           el.id === 'aistudio-hover-mode-tag' ||
           el.id === 'aistudio-design-mode-overlay') {
         continue;
       }
-      return el;
+      if (!imgAtPoint && el.tagName.toLowerCase() === 'img') {
+        imgAtPoint = el;
+      }
+      if (!fallback) {
+        fallback = el;
+      }
     }
+    if (imgAtPoint && fallback && fallback !== imgAtPoint &&
+        !fallback.textContent.trim()) {
+      return imgAtPoint;
+    }
+    return fallback;
+  }
+
+  function isPointInRect(x, y, rect) {
+    return x >= rect.left && x <= rect.right &&
+           y >= rect.top && y <= rect.bottom;
+  }
+
+  function getIconTargetElement(e) {
+    const focusImgIcon = focusTag?.querySelector('.aistudio-img-icon.visible');
+    const hoverImgIcon = hoverTag?.querySelector('.aistudio-img-icon.visible');
+
+    if (focusImgIcon && isPointInRect(e.clientX, e.clientY, focusImgIcon.getBoundingClientRect())) {
+      return activeElement;
+    }
+    if (hoverImgIcon && isPointInRect(e.clientX, e.clientY, hoverImgIcon.getBoundingClientRect())) {
+      return hoveredElement;
+    }
+
     return null;
   }
 
   function onMouseMove(e) {
     if (!designModeEnabled) return;
+    const target = getIconTargetElement(e);
+    if (target) {
+      if (target !== hoveredElement) {
+        setHoveredElement(null);
+      }
+      return;
+    }
+
+    if (hoverTag && hoverTag.style.display !== 'none') {
+      const rect = hoverTag.getBoundingClientRect();
+      // Add 5px tolerance at the bottom to bridge the gap to the element
+      if (e.clientX >= rect.left && e.clientX <= rect.right &&
+          e.clientY >= rect.top && e.clientY <= rect.bottom + 5) {
+        return;
+      }
+    }
+
     const element = getElementAtPoint(e.clientX, e.clientY);
     setHoveredElement(element);
   }
@@ -660,6 +847,7 @@
     if (!designModeEnabled) return;
     e.preventDefault();
     e.stopPropagation();
+
     const element = getElementAtPoint(e.clientX, e.clientY);
     if (element && element !== document.body) {
       setActiveElement(element);
@@ -722,40 +910,180 @@
     activeElement = null;
   }
 
-  window.addEventListener('message', async (event) => {
-    if (event.data?.type === 'set-design-mode') {
-      if (event.data.enabled) {
-        enableDesignMode();
-      } else {
-        disableDesignMode();
-      }
-    } else if (event.data?.type === 'highlight-element-by-selector') {
+  function getPageHtml() {
+    const clonedDoc = document.documentElement.cloneNode(true);
+    let cssText = '';
+    for (const sheet of document.styleSheets) {
       try {
-        const selector = event.data.selector;
-        if (selector) {
-          const element = document.querySelector(selector);
-          setActiveElement(element);
-        } else {
-          setActiveElement(null);
+        const rules = sheet.cssRules || sheet.rules;
+        for (const rule of rules) {
+          cssText += rule.cssText + '\n';
         }
       } catch (e) {
-        setActiveElement(null);
+        console.warn("CORS issue reading stylesheet: ", sheet.href);
       }
-    } else if (event.data?.type === 'change-element-style') {
-      try {
-        const selector = event.data.selector;
-        if (selector) {
-          const element = document.querySelector(selector);
-          if (element) {
-            element.style.setProperty(
-              event.data.property,
-              event.data.value,
-              'important',
-            );
-            positionFocusTag();
-          }
+    }
+    const styleTag = document.createElement('style');
+    styleTag.textContent = cssText;
+    const clonedHead = clonedDoc.querySelector('head');
+    if (clonedHead) {
+      clonedHead.querySelectorAll('link[rel="stylesheet"]').forEach(el => el.remove());
+      clonedHead.appendChild(styleTag);
+    }
+    clonedDoc.querySelectorAll('script').forEach(el => el.remove());
+    return '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
+  }
+
+  window.addEventListener('load', () => {
+    iframeLoaded = true;
+  });
+
+  window.addEventListener('message', async (event) => {
+    switch (event.data?.type) {
+      case 'set-design-mode':
+        if (event.data.enabled) {
+          enableDesignMode();
+        } else {
+          disableDesignMode();
         }
-      } catch (e) {}
+        break;
+
+      case 'highlight-element-by-selector':
+        try {
+          const selector = event.data.selector;
+          if (selector) {
+            const element = document.querySelector(selector);
+            setActiveElement(element, /* notifyHost= */ false);
+          } else {
+            setActiveElement(null, /* notifyHost= */ false);
+          }
+        } catch (e) {
+          setActiveElement(null, /* notifyHost= */ false);
+        }
+        break;
+
+      case 'toggle-generating-state':
+        try {
+          const selector = event.data.selector;
+          if (selector) {
+            const element = document.querySelector(selector);
+            if (element) {
+              console.log('Toggling generating state for ', selector, event.data.enabled);
+              if (event.data.enabled) {
+                element.classList.add('aistudio-generating-blur');
+                generatingElement = element;
+              } else {
+                element.style.transition = 'filter 0.3s ease';
+                element.classList.remove('aistudio-generating-blur');
+                generatingElement = null;
+                setTimeout(() => {
+                  element.style.transition = '';
+                }, 300);
+              }
+            }
+          }
+        } catch (e) {}
+        break;
+
+      case 'change-element-style':
+        try {
+          const selector = event.data.selector;
+          if (selector) {
+            const element = document.querySelector(selector);
+            if (element) {
+              element.style.setProperty(
+                event.data.property,
+                event.data.value,
+                'important',
+              );
+              positionFocusTag();
+            }
+          }
+        } catch (e) {}
+        break;
+
+      case 'image-generated':
+        try {
+          const selector = event.data.selector;
+          const dataUrl = event.data.dataUrl;
+          if (selector && dataUrl) {
+            const element = document.querySelector(selector);
+            if (element) {
+              const updateImg = (img) => {
+                const originalTransition = img.style.transition;
+                const originalOpacity = img.style.opacity;
+                img.style.transition = 'opacity 0.15s ease';
+                img.style.opacity = '0.3';
+                setTimeout(() => {
+                  img.srcset = '';
+                  img.src = dataUrl;
+                  setTimeout(() => {
+                    img.style.opacity = originalOpacity || '1';
+                    setTimeout(() => {
+                      img.style.transition = originalTransition;
+                    }, 150);
+                  }, 50);
+                }, 150);
+              };
+
+              if (element.tagName.toLowerCase() === 'img') {
+                updateImg(element);
+              } else {
+                const imgChild = element.querySelector(':scope > img');
+                if (imgChild) {
+                  updateImg(imgChild);
+                }
+              }
+            }
+          }
+        } catch (e) {}
+        break;
+
+      case 'get-page-html':
+        try {
+          const finalHTML = getPageHtml();
+
+          const hostPort = (await bootstrapChannel).port;
+          hostPort.postMessage({
+            type: 'page-html-result',
+            html: finalHTML,
+            requestId: event.data.requestId,
+            width: window.innerWidth
+          });
+        } catch (e) {
+          const hostPort = (await bootstrapChannel).port;
+          hostPort.postMessage({
+            type: 'page-html-error',
+            error: e.message,
+            requestId: event.data.requestId
+          });
+        }
+        break;
+
+      case 'apply-theme':
+        try {
+          const theme = event.data.theme;
+          if (theme) {
+            const rootStyle = document.documentElement.style;
+            for (const [key, value] of Object.entries(theme)) {
+              rootStyle.setProperty(key, value);
+            }
+          }
+          const darkTheme = event.data.darkTheme;
+          if (darkTheme) {
+            let styleTag = document.getElementById('dynamic-dark-theme');
+            if (!styleTag) {
+              styleTag = document.createElement('style');
+              styleTag.id = 'dynamic-dark-theme';
+              document.head.appendChild(styleTag);
+            }
+            const cssRules = Object.entries(darkTheme)
+              .map(([key, value]) => `${key}: ${value};`)
+              .join('\n');
+            styleTag.textContent = `.dark {\n${cssRules}\n}`;
+          }
+        } catch (e) {}
+        break;
     }
   });
 
