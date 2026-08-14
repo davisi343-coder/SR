@@ -4,5 +4,5 @@ Also designed with a view to run standalone HTML code and is phone/tablet compat
 Runs in a browser.
 Created with Google AI Studio.
 
-Practiscore Results Converter - This converts html results from Practiscore2 app into PDF or printable output. Designed to work with SSASS type matches.
+Practiscore Results Converter - This converts html results from Practiscore2 app into PDF or printable output. Designed to work with SASS type matches.
 Created with Google AI Studio.
