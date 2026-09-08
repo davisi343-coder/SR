@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amenity Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .search-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .inputs-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .clear-btn {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .clear-btn:hover {
+            background-color: #bd2130;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none; /* Hidden by default */
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .no-results {
+            text-align: center;
+            color: #777;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Search Data List</h2>
+    <p>Fill out <strong>Amenity or Name</strong> below to search. Results will appear automatically.</p>
+
+    <!-- Search Inputs -->
+    <div class="search-container">
+        <div class="inputs-group">
+            <div class="input-field">
+                <label for="searchAmenity">Amenity #</label>
+                <input type="text" id="searchAmenity" placeholder="e.g., 1001">
+            </div>
+            <div class="input-field">
+                <label for="searchName">Name</label>
+                <input type="text" id="searchName" placeholder="e.g., John">
+            </div>
+            <div class="input-field">
+                <label for="searchCurrent">Current</label>
+                <input type="text" id="searchCurrent" placeholder="">
+            </div>
+            <div class="input-field">
+                <label for="searchCategory">Category</label>
+                <input type="text" id="searchCategory" placeholder="">
+            </div>
+        </div>
+        <button class="clear-btn" id="clearBtn">Clear Search</button>
+    </div>
+
+    <!-- Results Table -->
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Amenity</th>
+                <th>Name</th>
+                <th>Current</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Dynamic data injected here -->
+        </tbody>
+    </table>
+    <div id="noResults" class="no-results">No matching values found.</div>
+
+    <script>
+        // Sample List Data
+        const dataList = [
+            
+{ amenity: "1000", name: " Samantha Hernandez", current: "YES", category: "A" },
+{ amenity: "1001", name: " Patricia Scott", current: "YES", category: "AB" },
+{ amenity: "1002", name: " Ashley Perez", current: "YES", category: "ABH" },
+{ amenity: "1003", name: " Sarah Thomas", current: "YES", category: "A" },
+{ amenity: "1004", name: " Frank Ward", current: "YES", category: "A" },
+{ amenity: "1005", name: " Barbara Brooks", current: "YES", category: "A" },
+{ amenity: "1006", name: " Jason Jones", current: "YES", category: "A" },
+{ amenity: "1007", name: " Patricia Anderson", current: "YES", category: "A" },
+{ amenity: "1008", name: " Betty Hall", current: "YES", category: "A" },
+{ amenity: "1009", name: " Nicholas Gray", current: "YES", category: "A" },
+{ amenity: "1010", name: " Angela Flores", current: "YES", category: "A" },
+{ amenity: "1011", name: " Raymond Phillips", current: "YES", category: "A" },
+{ amenity: "1012", name: " Ronald Miller", current: "YES", category: "A" },
+{ amenity: "1013", name: " Joshua Ward", current: "YES", category: "A" },
+{ amenity: "1014", name: " Paul Davis", current: "YES", category: "AB" },
+{ amenity: "1015", name: " Anthony Martinez", current: "YES", category: "AB" },
+{ amenity: "1016", name: " Ashley Perez", current: "YES", category: "AB" },
+{ amenity: "1017", name: " Helen White", current: "YES", category: "AB" },
+{ amenity: "1018", name: " Anna Hall", current: "YES", category: "AB" },
+{ amenity: "1019", name: " George Young", current: "YES", category: "AB" },
+{ amenity: "1020", name: " Andrew Cook", current: "YES", category: "AB" },
+{ amenity: "1021", name: " Donald Jackson", current: "YES", category: "AB" },
+{ amenity: "1022", name: " Ronald Torres", current: "YES", category: "AB" },
+{ amenity: "1023", name: " Kimberly Smith", current: "YES", category: "AB" },
+{ amenity: "1024", name: " Sharon Martin", current: "YES", category: "AB" },
+{ amenity: "1025", name: " Stephen Evans", current: "YES", category: "AB" },
+{ amenity: "1026", name: " Brian White", current: "YES", category: "ABH" },
+{ amenity: "1027", name: " Eric Taylor", current: "YES", category: "ABH" },
+{ amenity: "1028", name: " Betty Hall", current: "YES", category: "ABH" },
+{ amenity: "1029", name: " Jason Rogers", current: "NO", category: "ABH" },
+{ amenity: "1030", name: " Richard Murphy", current: "YES", category: "ABH" },
+{ amenity: "1031", name: " Larry Hall", current: "YES", category: "ABH" },
+
+        ];
+
+        // DOM Elements
+        const inputs = {
+            amenity: document.getElementById('searchAmenity'),
+            name: document.getElementById('searchName'),
+            current: document.getElementById('searchCurrent'),
+            category: document.getElementById('searchCategory')
+        };
+        const tableBody = document.getElementById('tableBody');
+        const noResults = document.getElementById('noResults');
+        const table = document.getElementById('resultsTable');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Render data based on current search visibility rules
+        function renderTable(data, hasActiveSearch) {
+            tableBody.innerHTML = '';
+            
+            // If there is no active search, hide everything
+            if (!hasActiveSearch) {
+                table.style.display = 'none';
+                noResults.style.display = 'none';
+                return;
+            }
+
+            // If searched but no results found
+            if (data.length === 0) {
+                table.style.display = 'none';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            // If search matches items
+            table.style.display = 'table';
+            noResults.style.display = 'none';
+            
+            data.forEach(item => {
+                const row = `<tr>
+                    <td>${item.amenity}</td>
+                    <td>${item.name}</td>
+                    <td>${item.current}</td>
+                    <td>${item.category}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Handle filtering logic and field freezing
+        function handleInput(e) {
+            const activeInput = e.target;
+            const value = activeInput.value.toLowerCase().trim();
+            const hasActiveSearch = value !== "";
+
+            if (hasActiveSearch) {
+                // Disable the other 3 fields
+                Object.values(inputs).forEach(input => {
+                    if (input !== activeInput) input.disabled = true;
+                });
+            } else {
+                // If current field is cleared completely, unlock everything and hide the table
+                resetInputs();
+                return;
+            }
+
+            // Filter the list based on the active field
+            let filteredData = dataList;
+            if (activeInput === inputs.amenity) {
+                filteredData = dataList.filter(item => item.amenity.toLowerCase().includes(value));
+            } else if (activeInput === inputs.name) {
+                filteredData = dataList.filter(item => item.name.toLowerCase().includes(value));
+            } else if (activeInput === inputs.current) {
+                filteredData = dataList.filter(item => item.current.toLowerCase().includes(value));
+            } else if (activeInput === inputs.category) {
+                filteredData = dataList.filter(item => item.category.toLowerCase().includes(value));
+            }
+
+            renderTable(filteredData, hasActiveSearch);
+        }
+
+        // Reset the form entirely
+        function resetInputs() {
+            Object.values(inputs).forEach(input => {
+                input.value = "";
+                input.disabled = false;
+            });
+            renderTable([], false);
+        }
+
+        // Event Listeners
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', handleInput);
+        });
+
+        clearBtn.addEventListener('click', resetInputs);
+
+        // Initial setup on load (hides the table)
+        renderTable([], false);
+    </script>
+</body>
+</html>
