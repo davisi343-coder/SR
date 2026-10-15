@@ -1,3 +1,5 @@
+# robots.txt for https://davisi343-coder.github.io/SR/
 User-agent: *
-Allow: /
-Sitemap: https://davisi343-coder.github.io/SR/
+Allow: /SR/
+
+Sitemap: https://davisi343-coder.github.io/SR/sitemap.xml
