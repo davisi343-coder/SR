@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single Action Match Scoring Sheets v1.9.0</title>
-  <!-- Optional jsPDF bundle for direct vector PDF download -->
+  <title>Single Action Match Scoring Sheets v2.0.0</title>
+  <!-- Optional libraries for direct vector PDF and XLSX support -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     /* Reset & Base Styles */
     *, *::before, *::after {
@@ -671,7 +672,7 @@
         <div class="brand-title">
           <span>★ SINGLE ACTION SCORING SHEETS</span>
         </div>
-        <span class="version-tag">v1.9.0</span>
+        <span class="version-tag">v2.0.0</span>
       </div>
 
       <div class="controls-grid">
@@ -748,19 +749,19 @@
     </div>
   </header>
 
-  <!-- Info & CSV Upload Bar -->
+  <!-- Info & CSV / XLSX Upload Bar -->
   <div class="info-bar no-print">
     <div class="info-container">
       <div class="csv-status">
         <span class="badge badge-neutral" id="competitorBadge">No Competitors Loaded (Blank Sheets)</span>
-        <span id="csvSourceText">Default: All Posses · Up to 30 Shooters per Posse · Larger Alias Font</span>
+        <span id="csvSourceText">Default: All Posses · Columns: Alias, Squad, Division · Up to 30 Shooters per Posse</span>
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
-        <!-- Prominent, highly readable Upload PractiScore CSV button -->
+        <!-- Prominent, highly readable Upload PractiScore CSV / XLSX button -->
         <label class="dropzone-inline btn-upload-prominent">
-          <span>📂 Upload PractiScore CSV</span>
-          <input type="file" id="csvFileInput" accept=".csv" onchange="handleCsvFile(event)" />
+          <span>📂 Upload CSV or XLSX</span>
+          <input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" onchange="handleCsvFile(event)" />
         </label>
       </div>
     </div>
@@ -780,18 +781,17 @@
       </div>
       <div class="modal-body">
         <div class="modal-notice-box">
-          ★ Use CSV file from Practiscore 2 - click on Import/Export &gt; Export Registration
+          ★ Use CSV or XLSX file from Practiscore 2 - click on Import/Export &gt; Export Registration
         </div>
 
-        <h4>1. CSV Import Rules & Column Allocations</h4>
+        <h4>1. CSV &amp; XLSX File Import &amp; Column Allocations</h4>
         <ul>
-          <li><strong>Header Row:</strong> The top header line in the CSV is automatically ignored.</li>
-          <li><strong>Ignored Columns:</strong> Columns 1 (SASS#), 2 (Shooter#), 3 (First Name), 4 (Last Name), 6 (Email), 9 (Class), 10 (Categories), 11 (Checkins), 12 (Team), and 13 (Country) are bypassed.</li>
-          <li><strong>Field 5:</strong> Competitor <strong>Alias</strong> printed on each line in large bold font.</li>
-          <li><strong>Field 7:</strong> Competitor <strong>Posse number</strong> allocator (e.g. <code>1</code> becomes <code>Posse 1</code>, <code>2</code> becomes <code>Posse 2</code>).</li>
+          <li><strong>Supported Formats:</strong> Upload either <code>.xlsx</code> or <code>.csv</code> PractiScore registration exports.</li>
+          <li><strong>Selective Columns:</strong> Only uses columns that have headers of <strong>Alias</strong>, <strong>Squad</strong>, and <strong>Division</strong>; all other columns are safely ignored.</li>
+          <li><strong>Squad Allocation:</strong> The <em>Squad</em> column allocates competitors into their respective posses (e.g. <code>1</code> becomes <code>Posse 1</code>).</li>
         </ul>
 
-        <h4>2. Posse Sets & 30 Shooters Capacity</h4>
+        <h4>2. Posse Sets &amp; 30 Shooters Capacity</h4>
         <ul>
           <li><strong>Max Capacity:</strong> Supports up to <strong>30 shooters per posse</strong> on each sheet.</li>
           <li><strong>Default Setting:</strong> Set to <em>"All Posses"</em> so each posse receives a complete set of sheets.</li>
@@ -805,11 +805,12 @@
           <li>Use the <strong>Stages (1-12)</strong> dropdown to choose anywhere between 1 and 12 stages for your match.</li>
         </ul>
 
-        <h4>4. Download PDF & Print Options</h4>
+        <h4>4. Download PDF &amp; Print Options</h4>
         <ul>
           <li>Click <strong>"Download PDF"</strong> to generate and save a `.pdf` file directly to your downloads.</li>
           <li>Click <strong>"Print Sheets"</strong> to print directly or choose <strong>"Save as PDF"</strong> in your browser print window.</li>
-          <li>Ensure Paper Size is set to <strong>Letter (8.5 x 11 in)</strong>, Orientation is <strong>Portrait</strong>, and Margins are set to <strong>None</strong> or <strong>Minimum</strong>.</li>
+          <li>Ensure Paper Size is set A4, Orientation is <strong>Portrait</strong>, and Margins are set to <strong>None</strong> or <strong>Minimum</strong>.</li>
+          <li>In blank mode, the header prints simply as <strong>"Posse"</strong> (without a number) for manual squad numbering.</li>
         </ul>
 
         <div class="modal-contact-box">
@@ -817,7 +818,7 @@
         </div>
 
         <div style="margin-top: 12px; font-size: 11px; color: #94a3b8; text-align: right;">
-          Single Action Scoring Sheets · Version 1.9.0
+          Single Action Scoring Sheets · Version 2.0.0
         </div>
       </div>
       <div class="modal-footer">
@@ -838,15 +839,74 @@
     let competitors = [];
     let discoveredPosses = ["Posse 1"];
 
-    function parseCsvIgnoringColumns(csvText) {
-      const lines = csvText.trim().split(/\r?\n/);
-      if (lines.length < 2) return [];
+    function parseRowsArray(rows) {
+      if (!rows || rows.length < 2) return [];
+
+      const headerRow = rows[0].map(h => String(h || '').trim());
+      const dataRows = rows.slice(1);
+
+      let aliasIndex = headerRow.findIndex(h => h.toLowerCase() === 'alias');
+      let squadIndex = headerRow.findIndex(h => h.toLowerCase() === 'squad' || h.toLowerCase() === 'posse');
+      let divisionIndex = headerRow.findIndex(h => h.toLowerCase() === 'division');
+
+      // Fallback to standard PractiScore column positions if not found by name
+      if (aliasIndex === -1) aliasIndex = 4;
+      if (squadIndex === -1) squadIndex = 6;
+      if (divisionIndex === -1) divisionIndex = 7;
 
       const rawShooters = [];
       const posseSet = new Set();
 
-      // Strictly ignore row 0 (header row)
-      for (let i = 1; i < lines.length; i++) {
+      dataRows.forEach(row => {
+        const alias = String(row[aliasIndex] || '').replace(/^"|"$/g, '').trim();
+        if (!alias || alias.toLowerCase() === 'alias') return;
+
+        let rawPosse = String(row[squadIndex] || '').replace(/^"|"$/g, '').trim();
+        let posseName = "Posse 1";
+
+        if (!rawPosse || rawPosse === "0" || rawPosse.toLowerCase() === "unassigned") {
+          posseName = "Posse 1";
+        } else if (/^\d+$/.test(rawPosse)) {
+          posseName = "Posse " + rawPosse;
+        } else if (/^posse\s*\d+/i.test(rawPosse)) {
+          posseName = rawPosse.replace(/^posse\s*/i, 'Posse ');
+        } else if (/^squad\s*(\d+)/i.test(rawPosse)) {
+          const num = rawPosse.match(/^squad\s*(\d+)/i)[1];
+          posseName = "Posse " + num;
+        } else {
+          posseName = "Posse " + rawPosse;
+        }
+
+        const division = String(row[divisionIndex] || '').replace(/^"|"$/g, '').trim() || 'Cowboy';
+
+        posseSet.add(posseName);
+        rawShooters.push({
+          alias: alias,
+          posse: posseName,
+          division: division
+        });
+      });
+
+      discoveredPosses = Array.from(posseSet).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      if (discoveredPosses.length === 0) discoveredPosses = ["Posse 1"];
+
+      updatePosseDropdown();
+
+      return rawShooters.sort((a, b) => {
+        const pComp = a.posse.localeCompare(b.posse, undefined, { numeric: true, sensitivity: 'base' });
+        if (pComp !== 0) return pComp;
+        return a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' });
+      });
+    }
+
+    function parseCsvIgnoringColumns(csvText) {
+      const lines = csvText.trim().split(/\r?\n/);
+      if (lines.length < 2) return [];
+
+      const rows = [];
+      for (let i = 0; i < lines.length; i++) {
         const rawLine = lines[i].trim();
         if (!rawLine) continue;
 
@@ -865,48 +925,10 @@
           }
         }
         cols.push(cur.trim());
-
-        const alias = (cols[4] || "").replace(/^"|"$/g, '').trim();
-        if (!alias || alias.toLowerCase() === 'alias') continue;
-
-        let rawPosse = (cols[6] || "").replace(/^"|"$/g, '').trim();
-        let posseName = "Posse 1";
-
-        if (!rawPosse || rawPosse === "0" || rawPosse.toLowerCase() === "unassigned") {
-          posseName = "Posse 1";
-        } else if (/^\d+$/.test(rawPosse)) {
-          posseName = "Posse " + rawPosse;
-        } else if (/^posse\s*\d+/i.test(rawPosse)) {
-          posseName = rawPosse.replace(/^posse\s*/i, 'Posse ');
-        } else if (/^squad\s*(\d+)/i.test(rawPosse)) {
-          const num = rawPosse.match(/^squad\s*(\d+)/i)[1];
-          posseName = "Posse " + num;
-        } else {
-          posseName = "Posse " + rawPosse;
-        }
-
-        const division = (cols[7] || "").replace(/^"|"$/g, '').trim() || 'Cowboy';
-
-        posseSet.add(posseName);
-        rawShooters.push({
-          alias: alias,
-          posse: posseName,
-          division: division
-        });
+        rows.push(cols);
       }
 
-      discoveredPosses = Array.from(posseSet).sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-      );
-      if (discoveredPosses.length === 0) discoveredPosses = ["Posse 1"];
-
-      updatePosseDropdown();
-
-      return rawShooters.sort((a, b) => {
-        const pComp = a.posse.localeCompare(b.posse, undefined, { numeric: true, sensitivity: 'base' });
-        if (pComp !== 0) return pComp;
-        return a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' });
-      });
+      return parseRowsArray(rows);
     }
 
     function updatePosseDropdown() {
@@ -974,23 +996,50 @@
       }
     }
 
+    function updateLoadedStatus(fileName) {
+      const badge = document.getElementById("competitorBadge");
+      badge.className = "badge badge-success";
+      badge.textContent = competitors.length + " Competitors Loaded";
+      document.getElementById("csvSourceText").textContent = "Uploaded: " + fileName + " (" + discoveredPosses.length + " posses) · Columns: Alias, Squad, Division";
+      selectedPosse = "ALL";
+      updatePosseDropdown();
+      renderAllSheets();
+    }
+
     function handleCsvFile(e) {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const text = evt.target.result;
-        competitors = parseCsvIgnoringColumns(text);
-        const badge = document.getElementById("competitorBadge");
-        badge.className = "badge badge-success";
-        badge.textContent = competitors.length + " Competitors Loaded";
-        document.getElementById("csvSourceText").textContent = "Uploaded: " + file.name + " (" + discoveredPosses.length + " posses) · Default: All Posses";
-        selectedPosse = "ALL";
-        updatePosseDropdown();
-        renderAllSheets();
-      };
-      reader.readAsText(file);
+      const isXlsx = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
+
+      if (isXlsx) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            if (!window.XLSX) {
+              alert("XLSX parsing library not yet loaded. Please try again.");
+              return;
+            }
+            const data = new Uint8Array(evt.target.result);
+            const workbook = window.XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const sheetRows = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: false });
+            competitors = parseRowsArray(sheetRows);
+            updateLoadedStatus(file.name);
+          } catch (err) {
+            console.error(err);
+            alert("Error reading XLSX file: " + err.message);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          competitors = parseCsvIgnoringColumns(evt.target.result);
+          updateLoadedStatus(file.name);
+        };
+        reader.readAsText(file);
+      }
     }
 
     // Render single sheet matching Blank_c96a0c74.pdf with 30 rows, larger alias font, and solid vertical borders
@@ -1016,10 +1065,10 @@
 
       return `
         <div class="score-page">
-          <!-- Page Header -->
+          <!-- Page Header: In blank mode, print Posse without a number -->
           <div class="page-header">
             <div class="header-match">${matchName}</div>
-            <div class="header-posse">${posseName}</div>
+            <div class="header-posse">${isBlankMode ? 'Posse' : posseName}</div>
             <div class="header-stage">Stage ${stageNumber}</div>
           </div>
 
@@ -1055,6 +1104,7 @@
 
     // Render single posse list matching requirements:
     // One posse per page, alias and division underneath, centered, NO dividing line
+    // In blank mode: header prints "Posse" without a number
     function renderSinglePosseListHtml(matchName, posseName, sortedShootersList) {
       let itemsHtml = '';
       if (sortedShootersList && sortedShootersList.length > 0) {
@@ -1070,12 +1120,14 @@
         itemsHtml = '<div style="padding: 60px 0; color: #94a3b8; font-style: italic;">No competitors registered in this posse (Blank)</div>';
       }
 
+      const isBlank = isBlankMode || !sortedShootersList || sortedShootersList.length === 0;
+
       return `
         <div class="posse-list-page">
           <div>
             <div class="posse-list-header">
               <div class="header-match">${matchName}</div>
-              <div class="header-posse">${posseName}</div>
+              <div class="header-posse">${isBlank ? 'Posse' : posseName}</div>
               <div class="header-stage" style="color: #475569;">Posse List</div>
             </div>
 
@@ -1085,8 +1137,8 @@
           </div>
 
           <div class="posse-list-footer">
-            <span>${posseName} · ${sortedShootersList ? sortedShootersList.length : 0} Shooters</span>
-            <span>Single Action Match Posse List · v1.9.0</span>
+            <span>${isBlank ? 'Posse' : posseName} · ${sortedShootersList ? sortedShootersList.length : 0} Shooters</span>
+            <span>Single Action Match Posse List · v2.0.0</span>
           </div>
         </div>
       `;
@@ -1169,6 +1221,7 @@
             isFirst = false;
 
             // Header: Match Name (left), Posse Name (center), Posse List (right)
+            // In blank mode: just print "Posse" without a number
             const topY = 44;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
@@ -1176,7 +1229,7 @@
             doc.text(currentMatchName || 'Match Name here', marginLeft, topY);
 
             doc.setFontSize(18);
-            doc.text(posseName, pageWidth / 2, topY, { align: 'center' });
+            doc.text(isBlankMode ? 'Posse' : posseName, pageWidth / 2, topY, { align: 'center' });
 
             doc.setFontSize(14);
             doc.setTextColor(70, 70, 70);
@@ -1223,7 +1276,7 @@
           });
 
           const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-          doc.save(`${safeName}_Posse_Lists_v1.9.0.pdf`);
+          doc.save(`${safeName}_Posse_Lists_v2.0.0.pdf`);
           return;
         }
 
@@ -1262,14 +1315,14 @@
             }
             isFirst = false;
 
-            // 1. Header
+            // 1. Header: In blank mode, print Posse without a number
             const topY = 36;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(15);
             doc.setTextColor(0, 0, 0);
 
             doc.text(currentMatchName || 'Match Name here', marginLeft, topY);
-            doc.text(posseName, pageWidth / 2, topY, { align: 'center' });
+            doc.text(isBlankMode ? 'Posse' : posseName, pageWidth / 2, topY, { align: 'center' });
             doc.text(`Stage ${s}`, lineRight, topY, { align: 'right' });
 
             // 2. Labels
@@ -1332,7 +1385,7 @@
         });
 
         const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-        doc.save(`${safeName}_Score_Sheets_v1.9.0.pdf`);
+        doc.save(`${safeName}_Score_Sheets_v2.0.0.pdf`);
       } catch (err) {
         console.error(err);
         window.print();
