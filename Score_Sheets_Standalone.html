@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single Action Match Scoring Sheets v1.9.0</title>
+  <!-- Optional jsPDF bundle for direct vector PDF download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Reset & Base Styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: Arial, Helvetica, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #111;
+      background-color: #f1f5f9;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Screen UI Controls (Hidden on Print) */
+    .no-print {
+      display: block;
+    }
+
+    .app-toolbar {
+      background-color: #0f172a;
+      color: #fff;
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .toolbar-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-subtitle {
+      font-size: 10.5px;
+      color: #94a3b8;
+      font-weight: 400;
+      display: block;
+    }
+
+    .version-tag {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .controls-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .control-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #cbd5e1;
+    }
+
+    .input-field, .select-field {
+      background-color: #1e293b;
+      border: 1px solid #475569;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .input-field:focus, .select-field:focus {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    }
+
+    .btn {
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      transition: all 0.15s ease-in-out;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background-color: #f59e0b;
+      color: #0f172a;
+    }
+    .btn-primary:hover {
+      background-color: #d97706;
+    }
+
+    .btn-secondary {
+      background-color: #334155;
+      color: #f8fafc;
+      border: 1px solid #475569;
+    }
+    .btn-secondary:hover {
+      background-color: #475569;
+    }
+
+    .btn-download-pdf {
+      background-color: #0284c7;
+      color: #ffffff;
+      border: 1px solid #0369a1;
+    }
+    .btn-download-pdf:hover {
+      background-color: #0369a1;
+    }
+
+    .btn-help {
+      background-color: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #64748b;
+    }
+    .btn-help:hover {
+      background-color: #334155;
+      color: #fff;
+    }
+
+    /* Highly readable Upload PractiScore CSV button */
+    .btn-upload-prominent {
+      background-color: #0f172a;
+      color: #ffffff !important;
+      border: 1.5px solid #334155;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .btn-upload-prominent:hover {
+      background-color: #1e293b;
+      border-color: #f59e0b;
+      color: #fbbf24 !important;
+    }
+
+    /* Sub-bar / Instructions */
+    .info-bar {
+      background-color: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .info-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .csv-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      background-color: #e2e8f0;
+      color: #334155;
+    }
+
+    .badge-neutral {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .badge-success {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    /* File drop zone input */
+    .dropzone-inline input[type="file"] {
+      display: none;
+    }
+
+    /* Sheet Viewer Canvas Area */
+    .sheets-wrapper {
+      padding: 20px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* EXACT REPLICA OF THE SASS SCORE SHEET (30 Rows) */
+    .score-page {
+      background-color: #fff;
+      width: 8.5in;
+      height: 11in;
+      margin: 0 auto;
+      padding: 0.28in 0.35in 0.22in 0.35in;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .header-match {
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+      text-align: left;
+      flex: 1;
+    }
+
+    .header-posse {
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+      text-align: center;
+      flex: 1;
+    }
+
+    .header-stage {
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+      text-align: right;
+      flex: 1;
+    }
+
+    /* Table Column Header Labels */
+    .table-header {
+      display: flex;
+      width: 100%;
+      font-size: 10px;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 4px;
+      padding: 0 2px;
+    }
+
+    /* Column Width Layout (Total 100%) */
+    .col-alias {
+      width: 32%;
+      text-align: center;
+    }
+    .col-raw {
+      width: 13%;
+      text-align: center;
+    }
+    .col-misses {
+      width: 13%;
+      text-align: center;
+    }
+    .col-procedure {
+      width: 13%;
+      text-align: center;
+    }
+    .col-msv {
+      width: 11%;
+      text-align: center;
+    }
+    .col-total {
+      width: 11%;
+      text-align: center;
+    }
+    .col-initials {
+      width: 7%;
+      text-align: center;
+    }
+
+    /* The Rows Container */
+    .table-body {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    /* Each Row: 27px height (30 rows * 27px = 810px fits Letter page 11in / 1056px perfectly) */
+    .table-row {
+      display: flex;
+      width: 100%;
+      height: 27px;
+      position: relative;
+      border-bottom: 1.5px solid #000000;
+    }
+
+    /* Increased Alias font size: 13.5px bold */
+    .row-alias {
+      width: 32%;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #000;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 2px;
+      padding-left: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      position: relative;
+      letter-spacing: -0.2px;
+    }
+
+    /* Data tick cell */
+    .row-cell {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 2px;
+    }
+
+    /* Solid vertical dividers for PDF & print: grey with space at bottom */
+    .tick-divider {
+      position: absolute;
+      right: 0;
+      bottom: 4px; /* Space at bottom so it doesn't touch horizontal line */
+      width: 0 !important;
+      height: 16px !important;
+      border-right: 2px solid #94a3b8 !important; /* Grey vertical line */
+      background: transparent !important;
+      display: block !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Bottom Example Row */
+    .example-row {
+      margin-top: 8px;
+      display: flex;
+      width: 100%;
+      font-size: 10px;
+      color: #64748b;
+      padding: 0 4px;
+    }
+
+    .example-alias {
+      width: 32%;
+      text-align: left;
+      padding-left: 6px;
+    }
+    .example-raw {
+      width: 13%;
+      text-align: center;
+    }
+    .example-misses {
+      width: 13%;
+      text-align: center;
+    }
+    .example-procedure {
+      width: 13%;
+      text-align: center;
+    }
+    .example-msv {
+      width: 11%;
+      text-align: center;
+    }
+    .example-total {
+      width: 11%;
+      text-align: center;
+    }
+    .example-initials {
+      width: 7%;
+      text-align: center;
+    }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(2px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 620px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid #cbd5e1;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #f8fafc;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .modal-body {
+      padding: 20px;
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .modal-body h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 14px;
+      margin-bottom: 4px;
+    }
+
+    .modal-body ul {
+      margin-left: 20px;
+      margin-bottom: 10px;
+    }
+
+    .modal-body li {
+      margin-bottom: 4px;
+    }
+
+    .modal-notice-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background-color: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #92400e;
+      font-weight: 700;
+    }
+
+    .modal-contact-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      background-color: #f8fafc;
+    }
+
+    /* POSSE LIST PAGE STYLES (one posse per page, alias and division underneath, centered, no dividing line) */
+    .posse-list-page {
+      background-color: #fff;
+      width: 8.5in;
+      height: 11in;
+      margin: 0 auto;
+      padding: 0.45in 0.5in 0.35in 0.5in;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+    }
+
+    .posse-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      width: 100%;
+      margin-bottom: 24px;
+      padding: 0 4px;
+    }
+
+    .posse-list-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      width: 100%;
+    }
+
+    .posse-list-item {
+      padding: 3px 0 2px 0;
+      margin-bottom: 12px; /* Increased space between division and next alias */
+      text-align: center;
+      width: 100%;
+    }
+
+    .posse-list-alias {
+      font-size: 14px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1.25;
+      letter-spacing: -0.2px;
+    }
+
+    .posse-list-division {
+      font-size: 11px;
+      font-weight: 500;
+      color: #334155;
+      line-height: 1.25;
+    }
+
+    .posse-list-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #94a3b8;
+      padding: 8px 4px 0 4px;
+    }
+
+    /* PRINT STYLES - PIXEL PERFECT LETTER PORTRAIT WITH SOLID PRINTABLE BORDERS */
+    @media print {
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      body {
+        background-color: #fff !important;
+        color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .no-print, .modal-overlay {
+        display: none !important;
+      }
+
+      .sheets-wrapper {
+        padding: 0 !important;
+        gap: 0 !important;
+      }
+
+      .score-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100vh !important;
+        padding: 0.28in 0.35in 0.22in 0.35in !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+
+      .posse-list-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100vh !important;
+        padding: 0.45in 0.5in 0.35in 0.5in !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+
+      .tick-divider {
+        display: block !important;
+        visibility: visible !important;
+        border-right: 2px solid #94a3b8 !important; /* Grey vertical line */
+        bottom: 4px !important; /* Space at bottom */
+        height: 16px !important;
+        width: 0 !important;
+      }
+
+      .table-row {
+        border-bottom: 1.5px solid #000000 !important;
+      }
+
+      @page {
+        size: letter portrait;
+        margin: 0;
+      }
+    }
+  </style>
+<script src="/_aistudio-iframe.js?v=1f94f900"></script></head>
+<body>
+
+  <!-- Top App Navigation & Controls (Screen only, hidden when printing) -->
+  <header class="app-toolbar no-print">
+    <div class="toolbar-container">
+      <div class="brand-group">
+        <div class="brand-title">
+          <span>★ SINGLE ACTION SCORING SHEETS</span>
+        </div>
+        <span class="version-tag">v1.9.0</span>
+      </div>
+
+      <div class="controls-grid">
+        <!-- Match Name Input -->
+        <div class="control-group">
+          <label class="control-label" for="matchNameInput">Match Name</label>
+          <input
+            type="text"
+            id="matchNameInput"
+            class="input-field"
+            value="Match Name here"
+            style="width: 150px;"
+            oninput="handleMatchNameChange(this.value)"
+          />
+        </div>
+
+        <!-- Posse Selection: Default to ALL POSSES, with Print posse lists option -->
+        <div class="control-group">
+          <label class="control-label" for="posseSelect">Posse Set</label>
+          <select id="posseSelect" class="select-field" onchange="handlePosseChange(this.value)">
+            <option value="ALL" selected>All Posses (Full Set Each)</option>
+            <option value="POSSE_LISTS">Print posse lists</option>
+            <option value="Posse 1">Posse 1</option>
+          </select>
+        </div>
+
+        <!-- Number of Stages: 1 to 12 Dropdown -->
+        <div class="control-group">
+          <label class="control-label" for="stageCountSelect">Stages (1-12)</label>
+          <select id="stageCountSelect" class="select-field" onchange="handleStageCountChange(this.value)">
+            <option value="1">1 Stage</option>
+            <option value="2">2 Stages</option>
+            <option value="3">3 Stages</option>
+            <option value="4">4 Stages</option>
+            <option value="5">5 Stages</option>
+            <option value="6" selected>6 Stages</option>
+            <option value="7">7 Stages</option>
+            <option value="8">8 Stages</option>
+            <option value="9">9 Stages</option>
+            <option value="10">10 Stages</option>
+            <option value="11">11 Stages</option>
+            <option value="12">12 Stages</option>
+          </select>
+        </div>
+
+        <!-- Action: Print Blank Sets -->
+        <div class="control-group" style="align-self: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="toggleBlankMode()">
+            <span id="blankModeBtnText">Print Blank Sets</span>
+          </button>
+        </div>
+
+        <!-- Action: Help / How-To -->
+        <div class="control-group" style="align-self: flex-end;">
+          <button type="button" class="btn btn-help" onclick="toggleHelpModal()">
+            ℹ️ Help / How-To
+          </button>
+        </div>
+
+        <!-- Action: Download PDF button in standalone -->
+        <div class="control-group" style="align-self: flex-end;">
+          <button type="button" class="btn btn-download-pdf" onclick="handleDownloadPdfStandalone()">
+            📥 Download PDF
+          </button>
+        </div>
+
+        <!-- Action: Direct Print / Save as PDF -->
+        <div class="control-group" style="align-self: flex-end;">
+          <button type="button" class="btn btn-primary" onclick="window.print()">
+            🖨️ Print Sheets
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Info & CSV Upload Bar -->
+  <div class="info-bar no-print">
+    <div class="info-container">
+      <div class="csv-status">
+        <span class="badge badge-neutral" id="competitorBadge">No Competitors Loaded (Blank Sheets)</span>
+        <span id="csvSourceText">Default: All Posses · Up to 30 Shooters per Posse · Larger Alias Font</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <!-- Prominent, highly readable Upload PractiScore CSV button -->
+        <label class="dropzone-inline btn-upload-prominent">
+          <span>📂 Upload PractiScore CSV</span>
+          <input type="file" id="csvFileInput" accept=".csv" onchange="handleCsvFile(event)" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sheets Container (Printed or on Screen) -->
+  <div class="sheets-wrapper" id="sheetsWrapper">
+    <!-- Score sheets will be dynamically rendered here -->
+  </div>
+
+  <!-- Help / How-To Modal Dialog -->
+  <div class="modal-overlay" id="helpModal" style="display: none;" onclick="handleModalBackdropClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Help & How-To Guide · Single Action Score Sheets</h3>
+        <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 14px;" onclick="toggleHelpModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-notice-box">
+          ★ Use CSV file from Practiscore 2 - click on Import/Export &gt; Export Registration
+        </div>
+
+        <h4>1. CSV Import Rules & Column Allocations</h4>
+        <ul>
+          <li><strong>Header Row:</strong> The top header line in the CSV is automatically ignored.</li>
+          <li><strong>Ignored Columns:</strong> Columns 1 (SASS#), 2 (Shooter#), 3 (First Name), 4 (Last Name), 6 (Email), 9 (Class), 10 (Categories), 11 (Checkins), 12 (Team), and 13 (Country) are bypassed.</li>
+          <li><strong>Field 5:</strong> Competitor <strong>Alias</strong> printed on each line in large bold font.</li>
+          <li><strong>Field 7:</strong> Competitor <strong>Posse number</strong> allocator (e.g. <code>1</code> becomes <code>Posse 1</code>, <code>2</code> becomes <code>Posse 2</code>).</li>
+        </ul>
+
+        <h4>2. Posse Sets & 30 Shooters Capacity</h4>
+        <ul>
+          <li><strong>Max Capacity:</strong> Supports up to <strong>30 shooters per posse</strong> on each sheet.</li>
+          <li><strong>Default Setting:</strong> Set to <em>"All Posses"</em> so each posse receives a complete set of sheets.</li>
+          <li><strong>Print Posse Lists:</strong> Choose <em>"Print posse lists"</em> in the Posse Set dropdown to generate clean rosters (one posse per page, alias with division underneath, centered, no dividing line).</li>
+          <li><strong>Alphabetical Order:</strong> Competitor aliases within each posse are automatically sorted alphabetically (A to Z).</li>
+          <li><strong>Full Sets:</strong> Selecting <em>"All Posses"</em> prints a complete sequential set of stage sheets (Stages 1 to <em>N</em>) for every posse.</li>
+        </ul>
+
+        <h4>3. Stage Dropdown (1 to 12)</h4>
+        <ul>
+          <li>Use the <strong>Stages (1-12)</strong> dropdown to choose anywhere between 1 and 12 stages for your match.</li>
+        </ul>
+
+        <h4>4. Download PDF & Print Options</h4>
+        <ul>
+          <li>Click <strong>"Download PDF"</strong> to generate and save a `.pdf` file directly to your downloads.</li>
+          <li>Click <strong>"Print Sheets"</strong> to print directly or choose <strong>"Save as PDF"</strong> in your browser print window.</li>
+          <li>Ensure Paper Size is set to <strong>Letter (8.5 x 11 in)</strong>, Orientation is <strong>Portrait</strong>, and Margins are set to <strong>None</strong> or <strong>Minimum</strong>.</li>
+        </ul>
+
+        <div class="modal-contact-box">
+          Suggestions, changes or problems contact JP Remington
+        </div>
+
+        <div style="margin-top: 12px; font-size: 11px; color: #94a3b8; text-align: right;">
+          Single Action Scoring Sheets · Version 1.9.0
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="toggleHelpModal()">Close Guide</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initial State: Initial load blank - default posse set to ALL POSSES
+    let currentMatchName = "Match Name here";
+    let selectedPosse = "ALL";
+    let totalStages = 6;
+    let isBlankMode = false;
+    const ROWS_PER_PAGE = 30; // Max 30 shooters per posse
+
+    // Competitors initially empty (blank load)
+    let competitors = [];
+    let discoveredPosses = ["Posse 1"];
+
+    function parseCsvIgnoringColumns(csvText) {
+      const lines = csvText.trim().split(/\r?\n/);
+      if (lines.length < 2) return [];
+
+      const rawShooters = [];
+      const posseSet = new Set();
+
+      // Strictly ignore row 0 (header row)
+      for (let i = 1; i < lines.length; i++) {
+        const rawLine = lines[i].trim();
+        if (!rawLine) continue;
+
+        const cols = [];
+        let cur = '';
+        let insideQuotes = false;
+        for (let c = 0; c < rawLine.length; c++) {
+          const char = rawLine[c];
+          if (char === '"') {
+            insideQuotes = !insideQuotes;
+          } else if (char === ',' && !insideQuotes) {
+            cols.push(cur.trim());
+            cur = '';
+          } else {
+            cur += char;
+          }
+        }
+        cols.push(cur.trim());
+
+        const alias = (cols[4] || "").replace(/^"|"$/g, '').trim();
+        if (!alias || alias.toLowerCase() === 'alias') continue;
+
+        let rawPosse = (cols[6] || "").replace(/^"|"$/g, '').trim();
+        let posseName = "Posse 1";
+
+        if (!rawPosse || rawPosse === "0" || rawPosse.toLowerCase() === "unassigned") {
+          posseName = "Posse 1";
+        } else if (/^\d+$/.test(rawPosse)) {
+          posseName = "Posse " + rawPosse;
+        } else if (/^posse\s*\d+/i.test(rawPosse)) {
+          posseName = rawPosse.replace(/^posse\s*/i, 'Posse ');
+        } else if (/^squad\s*(\d+)/i.test(rawPosse)) {
+          const num = rawPosse.match(/^squad\s*(\d+)/i)[1];
+          posseName = "Posse " + num;
+        } else {
+          posseName = "Posse " + rawPosse;
+        }
+
+        const division = (cols[7] || "").replace(/^"|"$/g, '').trim() || 'Cowboy';
+
+        posseSet.add(posseName);
+        rawShooters.push({
+          alias: alias,
+          posse: posseName,
+          division: division
+        });
+      }
+
+      discoveredPosses = Array.from(posseSet).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      if (discoveredPosses.length === 0) discoveredPosses = ["Posse 1"];
+
+      updatePosseDropdown();
+
+      return rawShooters.sort((a, b) => {
+        const pComp = a.posse.localeCompare(b.posse, undefined, { numeric: true, sensitivity: 'base' });
+        if (pComp !== 0) return pComp;
+        return a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' });
+      });
+    }
+
+    function updatePosseDropdown() {
+      const select = document.getElementById("posseSelect");
+      if (!select) return;
+
+      select.innerHTML = "";
+
+      const allOpt = document.createElement("option");
+      allOpt.value = "ALL";
+      allOpt.textContent = "All Posses (" + discoveredPosses.length + " Posses · Full Set Each)";
+      if (selectedPosse === "ALL") allOpt.selected = true;
+      select.appendChild(allOpt);
+
+      const posseListsOpt = document.createElement("option");
+      posseListsOpt.value = "POSSE_LISTS";
+      posseListsOpt.textContent = "Print posse lists";
+      if (selectedPosse === "POSSE_LISTS") posseListsOpt.selected = true;
+      select.appendChild(posseListsOpt);
+
+      discoveredPosses.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        opt.textContent = p;
+        if (p === selectedPosse) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function handleMatchNameChange(val) {
+      currentMatchName = val || "Match Name here";
+      renderAllSheets();
+    }
+
+    function handlePosseChange(val) {
+      selectedPosse = val;
+      renderAllSheets();
+    }
+
+    function handleStageCountChange(val) {
+      totalStages = parseInt(val, 10) || 6;
+      renderAllSheets();
+    }
+
+    function toggleBlankMode() {
+      isBlankMode = !isBlankMode;
+      const btn = document.getElementById("blankModeBtnText");
+      if (isBlankMode) {
+        btn.textContent = "✓ Blank Mode (Click to Normal)";
+      } else {
+        btn.textContent = "Print Blank Sets";
+      }
+      renderAllSheets();
+    }
+
+    function toggleHelpModal() {
+      const modal = document.getElementById("helpModal");
+      if (!modal) return;
+      modal.style.display = modal.style.display === "none" ? "flex" : "none";
+    }
+
+    function handleModalBackdropClick(e) {
+      if (e.target.id === "helpModal") {
+        toggleHelpModal();
+      }
+    }
+
+    function handleCsvFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        competitors = parseCsvIgnoringColumns(text);
+        const badge = document.getElementById("competitorBadge");
+        badge.className = "badge badge-success";
+        badge.textContent = competitors.length + " Competitors Loaded";
+        document.getElementById("csvSourceText").textContent = "Uploaded: " + file.name + " (" + discoveredPosses.length + " posses) · Default: All Posses";
+        selectedPosse = "ALL";
+        updatePosseDropdown();
+        renderAllSheets();
+      };
+      reader.readAsText(file);
+    }
+
+    // Render single sheet matching Blank_c96a0c74.pdf with 30 rows, larger alias font, and solid vertical borders
+    function renderSingleSheetHtml(matchName, posseName, stageNumber, sortedShootersList) {
+      let rowsHtml = '';
+      for (let i = 0; i < ROWS_PER_PAGE; i++) {
+        const shooterAlias = (!isBlankMode && sortedShootersList && sortedShootersList[i])
+          ? sortedShootersList[i].alias
+          : '';
+
+        rowsHtml += `
+          <div class="table-row">
+            <div class="row-alias">${shooterAlias}<div class="tick-divider"></div></div>
+            <div class="row-cell col-raw"><div class="tick-divider"></div></div>
+            <div class="row-cell col-misses"><div class="tick-divider"></div></div>
+            <div class="row-cell col-procedure"><div class="tick-divider"></div></div>
+            <div class="row-cell col-msv"><div class="tick-divider"></div></div>
+            <div class="row-cell col-total"><div class="tick-divider"></div></div>
+            <div class="row-cell col-initials"><div class="tick-divider"></div></div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="score-page">
+          <!-- Page Header -->
+          <div class="page-header">
+            <div class="header-match">${matchName}</div>
+            <div class="header-posse">${posseName}</div>
+            <div class="header-stage">Stage ${stageNumber}</div>
+          </div>
+
+          <!-- Column Header Labels -->
+          <div class="table-header">
+            <div class="col-alias">Alias</div>
+            <div class="col-raw">Raw Time</div>
+            <div class="col-misses">Misses</div>
+            <div class="col-procedure">Procedure</div>
+            <div class="col-msv">MSV</div>
+            <div class="col-total">Total</div>
+            <div class="col-initials">Initials</div>
+          </div>
+
+          <!-- 30 Horizontal Rows with Taller Vertical Tick Marks -->
+          <div class="table-body">
+            ${rowsHtml}
+          </div>
+
+          <!-- Bottom Example Row -->
+          <div class="example-row">
+            <div class="example-alias">Example</div>
+            <div class="example-raw">34.56</div>
+            <div class="example-misses">2 x 5</div>
+            <div class="example-procedure">1 x 10</div>
+            <div class="example-msv"></div>
+            <div class="example-total">54.56</div>
+            <div class="example-initials">initials</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render single posse list matching requirements:
+    // One posse per page, alias and division underneath, centered, NO dividing line
+    function renderSinglePosseListHtml(matchName, posseName, sortedShootersList) {
+      let itemsHtml = '';
+      if (sortedShootersList && sortedShootersList.length > 0) {
+        sortedShootersList.forEach(s => {
+          itemsHtml += `
+            <div class="posse-list-item">
+              <div class="posse-list-alias">${s.alias}</div>
+              <div class="posse-list-division">${s.division || 'Cowboy'}</div>
+            </div>
+          `;
+        });
+      } else {
+        itemsHtml = '<div style="padding: 60px 0; color: #94a3b8; font-style: italic;">No competitors registered in this posse (Blank)</div>';
+      }
+
+      return `
+        <div class="posse-list-page">
+          <div>
+            <div class="posse-list-header">
+              <div class="header-match">${matchName}</div>
+              <div class="header-posse">${posseName}</div>
+              <div class="header-stage" style="color: #475569;">Posse List</div>
+            </div>
+
+            <div class="posse-list-body">
+              ${itemsHtml}
+            </div>
+          </div>
+
+          <div class="posse-list-footer">
+            <span>${posseName} · ${sortedShootersList ? sortedShootersList.length : 0} Shooters</span>
+            <span>Single Action Match Posse List · v1.9.0</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAllSheets() {
+      const container = document.getElementById("sheetsWrapper");
+      if (!container) return;
+
+      let html = '';
+
+      if (selectedPosse === "POSSE_LISTS") {
+        discoveredPosses.forEach(posse => {
+          const posseShooters = isBlankMode
+            ? []
+            : competitors
+                .filter(s => s.posse === posse)
+                .sort((a, b) => a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' }));
+
+          html += renderSinglePosseListHtml(currentMatchName, posse, posseShooters);
+        });
+      } else {
+        const possesToRender = selectedPosse === "ALL" ? discoveredPosses : [selectedPosse];
+
+        possesToRender.forEach(posse => {
+          const posseShooters = isBlankMode
+            ? []
+            : competitors
+                .filter(s => s.posse === posse)
+                .sort((a, b) => a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' }));
+
+          for (let s = 1; s <= totalStages; s++) {
+            html += renderSingleSheetHtml(currentMatchName, posse, s, posseShooters);
+          }
+        });
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Direct PDF generator for standalone file
+    function handleDownloadPdfStandalone() {
+      // Check if window.jspdf is available
+      const jsPDFLib = window.jspdf ? window.jspdf.jsPDF : null;
+
+      if (!jsPDFLib) {
+        // Fallback to native print/save to PDF if library not loaded
+        alert("Preparing PDF via print dialog. Choose 'Save as PDF' as your printer destination.");
+        window.print();
+        return;
+      }
+
+      try {
+        const doc = new jsPDFLib({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'letter',
+        });
+
+        const pageWidth = 612;
+        const pageHeight = 792;
+        const marginLeft = 36;
+        const marginRight = 36;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+        const lineRight = marginLeft + contentWidth;
+
+        // POSSE LISTS MODE: alias and division underneath, centered, no dividing line, one posse per page
+        if (selectedPosse === "POSSE_LISTS") {
+          let isFirst = true;
+          discoveredPosses.forEach(posseName => {
+            const pShooters = isBlankMode
+              ? []
+              : competitors
+                  .filter(s => s.posse === posseName)
+                  .sort((a, b) => a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' }));
+
+            if (!isFirst) {
+              doc.addPage();
+            }
+            isFirst = false;
+
+            // Header: Match Name (left), Posse Name (center), Posse List (right)
+            const topY = 44;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text(currentMatchName || 'Match Name here', marginLeft, topY);
+
+            doc.setFontSize(18);
+            doc.text(posseName, pageWidth / 2, topY, { align: 'center' });
+
+            doc.setFontSize(14);
+            doc.setTextColor(70, 70, 70);
+            doc.text('Posse List', lineRight, topY, { align: 'right' });
+
+            // Shooters list: Alias and division underneath, centered, NO dividing lines
+            // Generous increased space between division and the next alias
+            const count = pShooters.length;
+            let startY = 82;
+            let itemSpacing = 24;
+            if (count > 0 && count <= 12) {
+              itemSpacing = 38;
+              startY = 96;
+            } else if (count > 12 && count <= 18) {
+              itemSpacing = 32;
+              startY = 88;
+            } else if (count > 18 && count <= 24) {
+              itemSpacing = 27;
+              startY = 84;
+            }
+
+            pShooters.forEach((shooter, idx) => {
+              const itemY = startY + idx * itemSpacing;
+              // Alias centered
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(13);
+              doc.setTextColor(0, 0, 0);
+              doc.text(shooter.alias, pageWidth / 2, itemY, { align: 'center' });
+
+              // Division underneath centered
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(9.5);
+              doc.setTextColor(70, 70, 70);
+              doc.text(shooter.division || 'Cowboy', pageWidth / 2, itemY + 10, { align: 'center' });
+              // No dividing line!
+            });
+
+            if (pShooters.length === 0) {
+              doc.setFont('helvetica', 'italic');
+              doc.setFontSize(12);
+              doc.setTextColor(120, 120, 120);
+              doc.text('No competitors in this posse (Blank)', pageWidth / 2, 140, { align: 'center' });
+            }
+          });
+
+          const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
+          doc.save(`${safeName}_Posse_Lists_v1.9.0.pdf`);
+          return;
+        }
+
+        const colWidths = {
+          alias: contentWidth * 0.32,
+          rawTime: contentWidth * 0.13,
+          misses: contentWidth * 0.13,
+          procedure: contentWidth * 0.13,
+          msv: contentWidth * 0.11,
+          total: contentWidth * 0.11,
+          initials: contentWidth * 0.07,
+        };
+
+        const tick1 = marginLeft + colWidths.alias;
+        const tick2 = tick1 + colWidths.rawTime;
+        const tick3 = tick2 + colWidths.misses;
+        const tick4 = tick3 + colWidths.procedure;
+        const tick5 = tick4 + colWidths.msv;
+        const tick6 = tick5 + colWidths.total;
+
+        const tickPositions = [tick1, tick2, tick3, tick4, tick5, tick6];
+        const possesToGen = selectedPosse === "ALL" ? discoveredPosses : [selectedPosse];
+
+        let isFirst = true;
+
+        possesToGen.forEach(posseName => {
+          const pShooters = isBlankMode
+            ? []
+            : competitors
+                .filter(s => s.posse === posseName)
+                .sort((a, b) => a.alias.localeCompare(b.alias, undefined, { sensitivity: 'base' }));
+
+          for (let s = 1; s <= totalStages; s++) {
+            if (!isFirst) {
+              doc.addPage();
+            }
+            isFirst = false;
+
+            // 1. Header
+            const topY = 36;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(15);
+            doc.setTextColor(0, 0, 0);
+
+            doc.text(currentMatchName || 'Match Name here', marginLeft, topY);
+            doc.text(posseName, pageWidth / 2, topY, { align: 'center' });
+            doc.text(`Stage ${s}`, lineRight, topY, { align: 'right' });
+
+            // 2. Labels
+            const headerLabelY = topY + 22;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+
+            doc.text('Alias', marginLeft + colWidths.alias / 2, headerLabelY, { align: 'center' });
+            doc.text('Raw Time', tick1 + colWidths.rawTime / 2, headerLabelY, { align: 'center' });
+            doc.text('Misses', tick2 + colWidths.misses / 2, headerLabelY, { align: 'center' });
+            doc.text('Procedure', tick3 + colWidths.procedure / 2, headerLabelY, { align: 'center' });
+            doc.text('MSV', tick4 + colWidths.msv / 2, headerLabelY, { align: 'center' });
+            doc.text('Total', tick5 + colWidths.total / 2, headerLabelY, { align: 'center' });
+            doc.text('Initials', tick6 + colWidths.initials / 2, headerLabelY, { align: 'center' });
+
+            // 3. Exactly 30 Rows with grey vertical lines and a space at the bottom
+            const rowStartY = headerLabelY + 6;
+            const rHeight = 22.0;
+            const vLineH = 15;
+            const gapAtBottom = 4; // Space at the bottom above horizontal line
+
+            for (let r = 0; r < ROWS_PER_PAGE; r++) {
+              const lineY = rowStartY + r * rHeight + rHeight;
+              const tickBottomY = lineY - gapAtBottom;
+              const tickTopY = tickBottomY - vLineH;
+
+              if (!isBlankMode && pShooters[r]) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0);
+                doc.text(pShooters[r].alias, marginLeft + 6, lineY - 3);
+              }
+
+              // Draw grey vertical tick marks
+              doc.setLineWidth(1.2);
+              doc.setDrawColor(148, 163, 184); // Slate grey
+              tickPositions.forEach(x => {
+                doc.line(x, tickTopY, x, tickBottomY);
+              });
+
+              // Draw full horizontal line in solid black
+              doc.setLineWidth(1.25);
+              doc.setDrawColor(0, 0, 0);
+              doc.line(marginLeft, lineY, lineRight, lineY);
+            }
+
+            // 4. Example Row
+            const exampleY = rowStartY + ROWS_PER_PAGE * rHeight + 18;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 116, 139);
+
+            doc.text('Example', marginLeft + 6, exampleY);
+            doc.text('34.56', tick1 + colWidths.rawTime / 2, exampleY, { align: 'center' });
+            doc.text('2 x 5', tick2 + colWidths.misses / 2, exampleY, { align: 'center' });
+            doc.text('1 x 10', tick3 + colWidths.procedure / 2, exampleY, { align: 'center' });
+            doc.text('54.56', tick5 + colWidths.total / 2, exampleY, { align: 'center' });
+            doc.text('initials', tick6 + colWidths.initials / 2, exampleY, { align: 'center' });
+          }
+        });
+
+        const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
+        doc.save(`${safeName}_Score_Sheets_v1.9.0.pdf`);
+      } catch (err) {
+        console.error(err);
+        window.print();
+      }
+    }
+
+    // Resilient initialization on load with BLANK sheets (default posse set to ALL POSSES)
+    function initApp() {
+      try {
+        competitors = [];
+        discoveredPosses = ["Posse 1"];
+        selectedPosse = "ALL";
+        updatePosseDropdown();
+        renderAllSheets();
+      } catch (err) {
+        console.error("Initialization error:", err);
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
