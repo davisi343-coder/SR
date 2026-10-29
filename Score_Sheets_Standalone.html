@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single Action Match Scoring Sheets v2.0.0</title>
+  <title>Single Action Match Scoring Sheets v2.2.0</title>
   <!-- Optional libraries for direct vector PDF and XLSX support -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -253,7 +253,7 @@
       gap: 24px;
     }
 
-    /* EXACT REPLICA OF THE SASS SCORE SHEET (30 Rows) */
+    /* EXACT REPLICA OF THE SASS SCORE SHEET (25 Rows) */
     .score-page {
       background-color: #fff;
       width: 8.5in;
@@ -352,30 +352,31 @@
       width: 100%;
     }
 
-    /* Each Row: 27px height (30 rows * 27px = 810px fits Letter page 11in / 1056px perfectly) */
+    /* Each Row: 32px height (25 rows * 32px = 800px fits Letter page 11in / 1056px perfectly) */
     .table-row {
       display: flex;
       width: 100%;
-      height: 27px;
+      height: 32px;
       position: relative;
       border-bottom: 1.5px solid #000000;
     }
 
-    /* Increased Alias font size: 13.5px bold */
+    /* Competitor Alias font size: exact 14pt bold */
     .row-alias {
       width: 32%;
-      font-size: 13.5px;
+      font-size: 14pt;
       font-weight: 700;
       color: #000;
       display: flex;
       align-items: flex-end;
-      padding-bottom: 2px;
+      padding-bottom: 3px;
       padding-left: 6px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       position: relative;
       letter-spacing: -0.2px;
+      line-height: 1.2;
     }
 
     /* Data tick cell */
@@ -393,7 +394,7 @@
       right: 0;
       bottom: 4px; /* Space at bottom so it doesn't touch horizontal line */
       width: 0 !important;
-      height: 16px !important;
+      height: 19px !important;
       border-right: 2px solid #94a3b8 !important; /* Grey vertical line */
       background: transparent !important;
       display: block !important;
@@ -648,12 +649,23 @@
         visibility: visible !important;
         border-right: 2px solid #94a3b8 !important; /* Grey vertical line */
         bottom: 4px !important; /* Space at bottom */
-        height: 16px !important;
+        height: 19px !important;
         width: 0 !important;
       }
 
       .table-row {
+        height: 32px !important;
+        min-height: 32px !important;
         border-bottom: 1.5px solid #000000 !important;
+      }
+
+      /* Ensure print option produces exact 14pt alias font matching the vector PDF */
+      .row-alias {
+        font-size: 14pt !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       @page {
@@ -672,7 +684,7 @@
         <div class="brand-title">
           <span>★ SINGLE ACTION SCORING SHEETS</span>
         </div>
-        <span class="version-tag">v2.0.0</span>
+        <span class="version-tag">v2.2.0</span>
       </div>
 
       <div class="controls-grid">
@@ -754,7 +766,7 @@
     <div class="info-container">
       <div class="csv-status">
         <span class="badge badge-neutral" id="competitorBadge">No Competitors Loaded (Blank Sheets)</span>
-        <span id="csvSourceText">Default: All Posses · Columns: Alias, Squad, Division · Up to 30 Shooters per Posse</span>
+        <span id="csvSourceText">Default: All Posses · Columns: Alias, Squad, Division · Up to 25 Shooters per Posse</span>
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -791,9 +803,9 @@
           <li><strong>Squad Allocation:</strong> The <em>Squad</em> column allocates competitors into their respective posses (e.g. <code>1</code> becomes <code>Posse 1</code>).</li>
         </ul>
 
-        <h4>2. Posse Sets &amp; 30 Shooters Capacity</h4>
+        <h4>2. Posse Sets &amp; 25 Shooters Capacity</h4>
         <ul>
-          <li><strong>Max Capacity:</strong> Supports up to <strong>30 shooters per posse</strong> on each sheet.</li>
+          <li><strong>Max Capacity:</strong> Supports up to <strong>25 shooters per posse</strong> on each sheet.</li>
           <li><strong>Default Setting:</strong> Set to <em>"All Posses"</em> so each posse receives a complete set of sheets.</li>
           <li><strong>Print Posse Lists:</strong> Choose <em>"Print posse lists"</em> in the Posse Set dropdown to generate clean rosters (one posse per page, alias with division underneath, centered, no dividing line).</li>
           <li><strong>Alphabetical Order:</strong> Competitor aliases within each posse are automatically sorted alphabetically (A to Z).</li>
@@ -818,7 +830,7 @@
         </div>
 
         <div style="margin-top: 12px; font-size: 11px; color: #94a3b8; text-align: right;">
-          Single Action Scoring Sheets · Version 2.0.0
+          Single Action Scoring Sheets · Version 2.2.0
         </div>
       </div>
       <div class="modal-footer">
@@ -833,7 +845,7 @@
     let selectedPosse = "ALL";
     let totalStages = 6;
     let isBlankMode = false;
-    const ROWS_PER_PAGE = 30; // Max 30 shooters per posse
+    const ROWS_PER_PAGE = 25; // Max 25 shooters per posse
 
     // Competitors initially empty (blank load)
     let competitors = [];
@@ -1042,7 +1054,7 @@
       }
     }
 
-    // Render single sheet matching Blank_c96a0c74.pdf with 30 rows, larger alias font, and solid vertical borders
+    // Render single sheet matching Blank_c96a0c74.pdf with 25 rows, 14px alias font, and solid vertical borders
     function renderSingleSheetHtml(matchName, posseName, stageNumber, sortedShootersList) {
       let rowsHtml = '';
       for (let i = 0; i < ROWS_PER_PAGE; i++) {
@@ -1083,7 +1095,7 @@
             <div class="col-initials">Initials</div>
           </div>
 
-          <!-- 30 Horizontal Rows with Taller Vertical Tick Marks -->
+          <!-- 25 Horizontal Rows with Taller Vertical Tick Marks -->
           <div class="table-body">
             ${rowsHtml}
           </div>
@@ -1138,7 +1150,7 @@
 
           <div class="posse-list-footer">
             <span>${isBlank ? 'Posse' : posseName} · ${sortedShootersList ? sortedShootersList.length : 0} Shooters</span>
-            <span>Single Action Match Posse List · v2.0.0</span>
+            <span>Single Action Match Posse List · v2.2.0</span>
           </div>
         </div>
       `;
@@ -1276,7 +1288,7 @@
           });
 
           const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-          doc.save(`${safeName}_Posse_Lists_v2.0.0.pdf`);
+          doc.save(`${safeName}_Posse_Lists_v2.2.0.pdf`);
           return;
         }
 
@@ -1338,10 +1350,10 @@
             doc.text('Total', tick5 + colWidths.total / 2, headerLabelY, { align: 'center' });
             doc.text('Initials', tick6 + colWidths.initials / 2, headerLabelY, { align: 'center' });
 
-            // 3. Exactly 30 Rows with grey vertical lines and a space at the bottom
+            // 3. Exactly 25 Rows with grey vertical lines and a space at the bottom
             const rowStartY = headerLabelY + 6;
-            const rHeight = 22.0;
-            const vLineH = 15;
+            const rHeight = 26.0;
+            const vLineH = 18;
             const gapAtBottom = 4; // Space at the bottom above horizontal line
 
             for (let r = 0; r < ROWS_PER_PAGE; r++) {
@@ -1351,9 +1363,9 @@
 
               if (!isBlankMode && pShooters[r]) {
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(11);
+                doc.setFontSize(14); // Font size 14 for alias
                 doc.setTextColor(0, 0, 0);
-                doc.text(pShooters[r].alias, marginLeft + 6, lineY - 3);
+                doc.text(pShooters[r].alias, marginLeft + 6, lineY - 4.5);
               }
 
               // Draw grey vertical tick marks
@@ -1385,7 +1397,7 @@
         });
 
         const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-        doc.save(`${safeName}_Score_Sheets_v2.0.0.pdf`);
+        doc.save(`${safeName}_Score_Sheets_v2.2.0.pdf`);
       } catch (err) {
         console.error(err);
         window.print();
