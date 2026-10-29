@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single Action Match Scoring Sheets v2.2.0</title>
+  <title>Single Action Match Scoring Sheets v2.3.0</title>
   <!-- Optional libraries for direct vector PDF and XLSX support -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -601,18 +601,23 @@
       padding: 8px 4px 0 4px;
     }
 
-    /* PRINT STYLES - PIXEL PERFECT LETTER PORTRAIT WITH SOLID PRINTABLE BORDERS */
+    /* PRINT STYLES - ROBUST PAGINATION FOR IOS, ANDROID, AND DESKTOP BROWSERS */
     @media print {
       *, *::before, *::after {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
 
-      body {
+      html, body {
         background-color: #fff !important;
         color: #000 !important;
         margin: 0 !important;
         padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
       }
 
       .no-print, .modal-overlay {
@@ -621,27 +626,74 @@
 
       .sheets-wrapper {
         padding: 0 !important;
+        margin: 0 !important;
         gap: 0 !important;
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
       }
 
       .score-page {
         box-shadow: none !important;
+        border: none !important;
         margin: 0 !important;
         width: 100% !important;
-        height: 100vh !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: block !important;
         padding: 0.28in 0.35in 0.22in 0.35in !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
         page-break-after: always !important;
         break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        box-sizing: border-box !important;
       }
 
       .posse-list-page {
         box-shadow: none !important;
+        border: none !important;
         margin: 0 !important;
         width: 100% !important;
-        height: 100vh !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: block !important;
         padding: 0.45in 0.5in 0.35in 0.5in !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
         page-break-after: always !important;
         break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        box-sizing: border-box !important;
+      }
+
+      .score-page:last-child,
+      .score-page:last-of-type,
+      .posse-list-page:last-child,
+      .posse-list-page:last-of-type {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+
+      .page-header,
+      .table-header,
+      .example-row,
+      .posse-list-header,
+      .posse-list-footer {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
       }
 
       .tick-divider {
@@ -656,7 +708,18 @@
       .table-row {
         height: 32px !important;
         min-height: 32px !important;
+        max-height: 32px !important;
         border-bottom: 1.5px solid #000000 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        display: flex !important;
+      }
+
+      .posse-list-item {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
       }
 
       /* Ensure print option produces exact 14pt alias font matching the vector PDF */
@@ -669,7 +732,7 @@
       }
 
       @page {
-        size: letter portrait;
+        size: portrait;
         margin: 0;
       }
     }
@@ -684,7 +747,7 @@
         <div class="brand-title">
           <span>★ SINGLE ACTION SCORING SHEETS</span>
         </div>
-        <span class="version-tag">v2.2.0</span>
+        <span class="version-tag">v2.3.0</span>
       </div>
 
       <div class="controls-grid">
@@ -830,7 +893,7 @@
         </div>
 
         <div style="margin-top: 12px; font-size: 11px; color: #94a3b8; text-align: right;">
-          Single Action Scoring Sheets · Version 2.2.0
+          Single Action Scoring Sheets · Version 2.3.0
         </div>
       </div>
       <div class="modal-footer">
@@ -1150,7 +1213,7 @@
 
           <div class="posse-list-footer">
             <span>${isBlank ? 'Posse' : posseName} · ${sortedShootersList ? sortedShootersList.length : 0} Shooters</span>
-            <span>Single Action Match Posse List · v2.2.0</span>
+            <span>Single Action Match Posse List · v2.3.0</span>
           </div>
         </div>
       `;
@@ -1288,7 +1351,7 @@
           });
 
           const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-          doc.save(`${safeName}_Posse_Lists_v2.2.0.pdf`);
+          doc.save(`${safeName}_Posse_Lists_v2.3.0.pdf`);
           return;
         }
 
@@ -1397,7 +1460,7 @@
         });
 
         const safeName = (currentMatchName || 'Match').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 25);
-        doc.save(`${safeName}_Score_Sheets_v2.2.0.pdf`);
+        doc.save(`${safeName}_Score_Sheets_v2.3.0.pdf`);
       } catch (err) {
         console.error(err);
         window.print();
